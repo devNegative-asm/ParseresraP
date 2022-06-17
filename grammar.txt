@@ -1,0 +1,144 @@
+#lexer
+#pretty much everything is regex
+#when they start with lowercase, they can be used as helpers to be embedded into future regex
+#embedding syntax is /{likeThis}/
+
+lowercase = /[a-z]/
+uppercase = /[A-Z]/
+identifierTrail = /[a-zA-Z_\d]*/
+digit = /[0-9]/
+hexit = /[0-9A-Fa-f]/
+bit = /[01]/
+octit = /[0-7]/
+color = /white|black|cyan|red|green|blue|purple/
+stringEmbedded = /[^"\\]|\\"|\\\\|\\[nrt]|\\{hexit}{hexit}|\\#{color}/
+type = /{uppercase}{identifierTrail}/
+constructor = /{uppercase}{identifierTrail}\$/
+
+#Token types are written with Capitals Starting The Words
+
+Character = /'([^\\]|\\['\\nrt])'/
+Variant = /variant/
+Struct = /struct/
+Match = /match/
+Let = /let/
+If = /if/
+Then = /then/
+Else = /else/
+Func = /func/
+Empty = /\s+/ 
+ListOpen = /\[/
+ListClose = /\]/
+ParenOpen = /\(/
+ParenClose = /\)/
+ScopeOpen = /\{/
+ScopeClose = /\}/
+Arrow = /->/
+Eq = /=/
+Node = /node/
+Colon = /:/
+IntLiteral = /{digit}+/
+HexLiteral = /0x{hexit}*/
+BinaryLiteral = /0b{bit}*/
+OctalLiteral = /0o?{octit}*/
+BinaryOperator = /[-+%^&*,/<>]|<=|>=|!=|\|\|?|&&?/
+UnaryOperator = /[~!]/
+String = /"{stringEmbedded}*"/
+
+Type = /{type}/
+Variable = /{lowercase}{identifierTrail}/
+
+Invocation = /{lowercase}{identifierTrail}\$/
+Constructor = /{constructor}/
+VariantConstructor = /{type}\.{constructor}/
+
+
+#To switch to parsing mode, just write ".Parse" on an empty line
+
+Parse.
+
+# Named states before an = sign
+# parsing rules come 1 per line afterwards
+# children included in the syntax tree are the numbers included after the arrow.
+# ?= instead of = means "remove instances of this node from the syntax tree after parsing because it's just a helper state"
+# helper states should only ever have (0) after their rules
+# 
+
+Main =
+	Declaration... -> (0)
+	
+Declaration ?=
+	Function -> (0)
+	DefineStruct -> (0)
+		
+DefineStruct =
+	Struct Type ScopeOpen Variable... ScopeClose -> (1 3)
+	
+Function =
+	Func Variable ArgumentsList Eq Body -> (1 2 4)
+	
+IfExpression =
+	If Body Then Body Else Body -> (1 3 5)
+
+ListLiteral =
+	ListOpen Body... ListClose -> (1)
+	
+InvocationExpression =
+	Invocation ParenOpen PassingArguments ParenClose -> (2)
+	Constructor ScopeOpen PassingArguments ScopeClose -> (2)
+	ScopeOpen PassingArguments ScopeClose -> (1)
+	
+LetExpression = 
+	Let Variable Eq Body Colon Body -> (1 3 5)
+	
+MatchExpression =
+	Match Body ScopeOpen Phrases ScopeClose -> (1 3)
+	
+Phrases =
+	Phrase... -> (0)
+	
+LambdaExpression =
+	ParenOpen ArgumentsList ParenClose Arrow Body -> (1 4)
+	
+ArgumentsList =
+	Variable... -> (0)
+	
+PassingArguments =
+	Body... -> (0)
+	
+BinaryOp =
+	BinaryOperator Body Body -> (1 2)
+	Eq Body Body -> (1 2)
+	
+UnaryOp =
+	UnaryOperator Body -> (1)
+	
+
+Body ?=
+	BinaryOp -> (0)
+	UnaryOp -> (0)
+	String -> (0)
+	Character -> (0)
+	IntLiteral -> (0)
+	HexLiteral -> (0)
+	BinaryLiteral -> (0)
+	OctalLiteral -> (0)
+	Variable -> (0)
+	IfExpression -> (0)
+	ListLiteral -> (0)
+	InvocationExpression -> (0)
+	LetExpression -> (0)
+	MatchExpression -> (0)
+	LambdaExpression -> (0)
+	
+Phrase =
+	Pattern Colon Body -> (0 2)
+	
+Pattern =
+	Literal -> (0)
+	Variable -> (0)
+	Type ScopeOpen Pattern... ScopeClose -> (0 2)
+	ScopeOpen Pattern... ScopeClose -> (1)
+	Type -> (0)
+	Node Pattern Pattern -> (0 1 2)
+	ListLiteral -> (0)

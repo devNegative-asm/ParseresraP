@@ -1,0 +1,44 @@
+func square x = * x
+ let lambda = (n) -> - n n:
+  lambda$(x)
+
+func append elem list =
+ let runnable = (elem list) -> match list {
+   node a b: cons$(a append$(elem b))
+   []: [elem]
+  }:
+ runnable$(elem list)
+
+func start args = 
+ , print_int$(square$(+ 0b10 0xff))
+   print$("\#redHello!")
+  
+func doit v =
+ if <= v 0 then
+  !v
+ else
+  v
+  
+  
+struct Pair {a b}
+struct Some {x}
+struct None {}
+
+
+func addPoints p1 p2 =
+ match p1 {
+  Pair {x y}: match p2 {
+   Pair {x2 y2}: Pair$ {+ x x2 + y y2}
+  }
+ }
+ 
+func flip pare =
+ match pare {
+  {x y}: {y x}
+ }
+ 
+func maybeDo f x default = 
+ match x {
+  None: default
+  Some {val}: f$(val)
+ }
